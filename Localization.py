@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 # The function localize takes the following arguments:
 #
 # colors:
@@ -47,36 +49,50 @@ def move(p, motion, p_move):
     if motion == [0,0]:
         return p
     
-    q = list(p)
+    q = deepcopy(p)
     #Sum each next probability given prior probability
     for row in range(len(p)):
         for col in range(len(p[0])):
-            q[row][col] = (p[row][col-motion[1]] * p_move) + (p[row][col] * (1 - p_move))
+            sourceCol = 0
+            if (col-motion[1]) != 0:
+                sourceCol = (col-motion[1]) % 5
+            sourceRow = (row-motion[0]) % 4
+            q[row][col] = (p[sourceRow][sourceCol] * p_move) + (p[row][col] * (1 - p_move))
     return q
 
-def sense(p, measurement):
-    q = list(p)
+def sense(p, colors, measurement, sensor_right):
+    q = deepcopy(p)
+    for row in range(len(p)):
+        for col in range(len(p[0])):
+            if colors[row][col] == measurement:
+                q[row][col] = p[row][col] * sensor_right
+            else:
+                q[row][col] = p[row][col] * (1 - sensor_right)
     return q
 
 def renormalize(p):
-    q = list(p)
+    q = deepcopy(p)
+
+    modifier = 1/(sum(map(sum, p)))
+    for row in range(len(p)):
+        for col in range(len(p[0])):
+            q[row][col] = p[row][col] * modifier
     return q
 
 def localize(colors,measurements,motions,sensor_right,p_move):
     # initializes p to a uniform distribution over a grid of the same dimensions as colors
     pinit = 1.0 / float(len(colors)) / float(len(colors[0]))
     p = [[pinit for row in range(len(colors[0]))] for col in range(len(colors))]
-    p[1][1] = .75
-    p= move(p, [0,1], 1)
-    
-    #for i in range(len(motions)):
-     #   p = move(p, motions[i], p_move)
-      #  p = sense(p, measurements[i])
 
-    # Goes through each column in each row in order
-    #for row in range(len(p)):
-     #   for col in range(len(p[0])):
-      #      print (str(row) + "  " + str(col))
+
+
+
+
+    for i in range(len(motions)):
+        p = move(p, motions[i], p_move)
+        p = sense(p, colors, measurements[i], sensor_right)
+        p = renormalize(p)
+
     
     return p
 
